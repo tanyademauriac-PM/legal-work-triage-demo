@@ -1,0 +1,790 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A fictional work-triage prototype for legal operations.">
+  <meta name="color-scheme" content="light">
+  <title>Work Triage | Legal operations prototype</title>
+  <style id="app-styles">
+    :root {
+      --ink: #1d3041; --muted: #526476; --faint: #738294; --navy: #152c40;
+      --accent: #176a6a; --accent-dark: #105456; --accent-soft: #eaf5f2;
+      --canvas: #f4f6f8; --line: #dce3e9; --blue: #285d8b; --blue-soft: #edf4fa;
+      --amber: #835600; --amber-soft: #fff5dc; --red: #9c3535; --radius: 14px;
+      font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--ink); background: var(--canvas); font-synthesis: none;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-size: 15px; line-height: 1.5; }
+    button, input, textarea { font: inherit; }
+    button { cursor: pointer; }
+    button, a, input, textarea, summary { -webkit-tap-highlight-color: transparent; }
+    button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible, summary:focus-visible {
+      outline: 3px solid #238aab; outline-offset: 3px;
+    }
+    button:disabled { cursor: default; opacity: .55; }
+    a { color: var(--accent-dark); }
+    svg { display: inline-block; width: 18px; height: 18px; flex: 0 0 auto; vertical-align: middle; }
+    h1, h2, h3, p { margin: 0; }
+    h1 { font-size: 28px; line-height: 1.25; font-weight: 650; letter-spacing: -.7px; }
+    h2 { font-size: 21px; line-height: 1.35; letter-spacing: -.3px; }
+    h3 { font-size: 15px; line-height: 1.4; font-weight: 650; }
+    .skip-link { position: fixed; top: -80px; left: 20px; z-index: 20; background: white; padding: 12px 18px; border-radius: 8px; }
+    .skip-link:focus { top: 10px; }
+    .topbar { background: var(--navy); color: white; }
+    .topbar-inner { max-width: 1540px; margin: auto; padding: 0 32px; min-height: 74px; display: flex; align-items: center; gap: 40px; }
+    .brand { display: flex; align-items: center; gap: 11px; white-space: nowrap; font-size: 19px; font-weight: 650; letter-spacing: -.3px; }
+    .brand-mark { width: 34px; height: 34px; border-radius: 9px; background: #d9eee9; color: #145b59; display: grid; place-items: center; }
+    .brand-mark svg { width: 23px; height: 23px; }
+    .view-nav { display: flex; align-self: stretch; gap: 24px; }
+    .nav-button { border: 0; border-bottom: 3px solid transparent; background: none; color: #c5d3df; padding: 2px 2px 0; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+    .nav-button[aria-current="page"] { color: white; border-bottom-color: #87c6bb; }
+    .topbar-end { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+    .persona { display: flex; align-items: center; gap: 9px; font-size: 13px; line-height: 1.35; }
+    .avatar { width: 31px; height: 31px; border: 1px solid #60778b; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 600; }
+    .persona small { color: #c2d1dd; display: block; font-size: 11px; }
+    .top-reset { color: #e3edf3; border: 1px solid #536b7f; background: transparent; border-radius: 7px; padding: 7px 10px; display: flex; gap: 6px; align-items: center; font-size: 12px; }
+    .top-reset:hover { background: #284357; }
+    .simulation { border-bottom: 1px solid #dfe5ea; background: #edf1f4; color: #536273; font-size: 12px; }
+    .simulation-inner { max-width: 1540px; margin: auto; padding: 8px 32px; display: flex; justify-content: space-between; gap: 16px; align-items: center; }
+    .simulation strong { font-weight: 650; color: #405366; }
+    .simulation-dot { width: 6px; height: 6px; background: #75899b; display: inline-block; border-radius: 50%; margin: 0 7px 1px 0; }
+    .page { max-width: 1540px; margin: auto; padding: 25px 32px 32px; }
+    .page-heading { display: flex; justify-content: space-between; align-items: center; gap: 20px; margin-bottom: 20px; }
+    .page-heading p { color: var(--muted); margin-top: 5px; font-size: 14px; }
+    .page-heading .team-key { margin-top: 8px; font-size: 12px; line-height: 1.45; color: #506475; }
+    .team-key strong { color: #29465a; font-weight: 650; }
+    .guidance-button { display: flex; align-items: center; gap: 7px; color: var(--accent-dark); background: white; border: 1px solid var(--line); border-radius: 8px; padding: 9px 12px; font-size: 13px; white-space: nowrap; }
+    .guidance-button:hover { border-color: #8baeb0; }
+    .workspace { display: grid; grid-template-columns: minmax(355px, .94fr) minmax(440px, 1.22fr); gap: 22px; align-items: start; }
+    .queue, .detail-panel, .operations-panel { background: white; border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 2px 5px #152c4003; overflow: hidden; }
+    .queue-top { padding: 18px 19px 14px; border-bottom: 1px solid var(--line); }
+    .queue-title { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .queue-title h2 { font-size: 16px; letter-spacing: 0; }
+    .scope-note { font-size: 12px; color: var(--muted); }
+    .filter-group { display: flex; background: #f0f3f5; padding: 4px; border-radius: 8px; gap: 3px; }
+    .filter-button { flex: 1; background: transparent; border: 1px solid transparent; border-radius: 6px; padding: 8px 6px; color: var(--muted); font-size: 13px; font-weight: 600; }
+    .filter-button[aria-pressed="true"] { color: var(--ink); background: white; border-color: #dfe5e9; box-shadow: 0 1px 3px #18304409; }
+    .filter-count { display: inline-block; min-width: 19px; padding: 0 5px; margin-left: 4px; background: #e5eaee; color: #455669; border-radius: 5px; font-size: 11px; }
+    .filter-button[aria-pressed="true"] .filter-count { background: var(--accent-soft); color: var(--accent-dark); }
+    .need-list { padding: 0; margin: 0; list-style: none; max-height: calc(100dvh - 326px); min-height: 330px; overflow-y: auto; }
+    .need-list li + li { border-top: 1px solid #e8edf1; }
+    .need-row { display: block; position: relative; width: 100%; padding: 17px 19px; border: none; border-left: 3px solid transparent; text-align: left; background: white; color: var(--ink); }
+    .need-row:hover { background: #f7fafb; }
+    .need-row[aria-pressed="true"] { border-left-color: var(--accent); background: #f0f7f6; }
+    .need-row[aria-pressed="true"] .row-title { color: #124e51; }
+    .need-row:focus-visible { outline-offset: -4px; }
+    .row-top, .row-bottom { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .row-top { margin-bottom: 7px; }
+    .row-title { font-size: 15px; line-height: 1.42; font-weight: 650; margin: 0 0 6px; display: block; }
+    .row-case { color: var(--muted); font-size: 12px; display: block; margin-bottom: 10px; }
+    .row-case-id { color: #627487; }
+    .row-bottom .responsible { font-size: 11px; color: var(--muted); max-width: 55%; text-align: right; }
+    .priority-label { font-size: 11px; font-weight: 650; display: inline-flex; align-items: center; gap: 5px; color: var(--blue); }
+    .priority-label.amber { color: var(--amber); }
+    .priority-label.neutral { color: #5e6b79; }
+    .priority-label svg { width: 13px; height: 13px; }
+    .row-time { font-size: 11px; color: var(--muted); white-space: nowrap; }
+    .money-context { font-size: 11px; color: #536878; margin-left: 6px; }
+    .status { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 5px; font-size: 11px; line-height: 1.4; font-weight: 600; background: #eef1f5; color: #536274; white-space: nowrap; }
+    .status.needs_decision { background: #edf3f8; color: #365a78; }
+    .status.requested { background: #f0edf9; color: #66548a; }
+    .status.in_progress { background: #eaf3f9; color: #2e6286; }
+    .status.waiting { background: #f0f2f5; color: #596879; }
+    .status.resolved { background: #e6f3ed; color: #27654c; }
+    .status.corrected { background: #f5eee8; color: #765c48; }
+    .queue-foot { padding: 12px 19px; border-top: 1px solid var(--line); font-size: 11px; color: #647383; background: #fbfcfd; }
+    .detail-panel { max-height: calc(100dvh - 222px); overflow-y: auto; min-height: 550px; }
+    .detail-head { padding: 23px 25px 18px; border-bottom: 1px solid #e6ebef; }
+    .detail-eyebrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--muted); font-size: 12px; margin-bottom: 12px; }
+    .detail-title { font-size: 23px; line-height: 1.3; margin-bottom: 13px; }
+    .detail-tags { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; }
+    .attention-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; color: #526b77; }
+    .attention-badge.on { color: var(--amber); }
+    .attention-badge svg { width: 13px; height: 13px; }
+    .panel-content { padding: 20px 25px; }
+    .reason-box { border-left: 3px solid #81aeb1; padding: 11px 13px; background: #f2f7f8; border-radius: 0 7px 7px 0; margin-bottom: 19px; }
+    .reason-box.amber { border-left-color: #d5ac55; background: #fffaed; }
+    .reason-box h3 { font-size: 13px; margin-bottom: 5px; }
+    .reason-box p { font-size: 13px; color: #43586a; }
+    .reason-box p + p { margin-top: 7px; }
+    .minor-label { font-size: 11px; color: var(--muted); font-weight: 600; }
+    .why-details { margin-top: 8px; font-size: 12px; }
+    .why-details summary { cursor: pointer; color: var(--accent-dark); font-weight: 600; width: fit-content; }
+    .why-details p { margin-top: 7px; font-size: 12px; }
+    .section-heading { display: flex; align-items: center; gap: 7px; margin: 21px 0 10px; }
+    .section-heading:first-child { margin-top: 0; }
+    .section-heading h3 { font-size: 14px; }
+    .section-heading svg { width: 16px; height: 16px; color: #688092; }
+    .section-heading .side-label { margin-left: auto; font-size: 11px; color: var(--muted); }
+    .evidence-card { border: 1px solid #e0e7ed; border-radius: 8px; padding: 12px 13px; margin-bottom: 9px; background: #fcfdfe; }
+    .evidence-head { display: flex; justify-content: space-between; gap: 8px; align-items: center; margin-bottom: 5px; }
+    .evidence-source { font-size: 12px; font-weight: 650; }
+    .quality { font-size: 10px; color: #65788a; background: #eef2f5; padding: 2px 5px; border-radius: 4px; }
+    .quality.conflicting { color: #865800; background: #fff2d2; }
+    .quality.updated { color: #27654c; background: #e8f3ed; }
+    .evidence-card p { font-size: 13px; color: #455a6c; }
+    .evidence-card time { display: block; font-size: 11px; color: #6a7c8b; margin-top: 6px; }
+    .responsibility-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 13px 18px; padding: 13px 0; }
+    .responsibility-grid dt { font-size: 11px; color: var(--muted); margin-bottom: 3px; }
+    .responsibility-grid dd { margin: 0; font-size: 13px; font-weight: 600; }
+    .responsibility-grid dd span { display: block; font-weight: 400; color: var(--muted); font-size: 11px; margin-top: 2px; }
+    .next-step { border: 1px solid #e0e8e8; border-radius: 8px; padding: 12px 13px; background: #f8fbfa; font-size: 13px; }
+    .next-step .step-title { display: block; font-weight: 600; margin: 4px 0; }
+    .next-step .step-meta { display: block; color: var(--muted); font-size: 12px; }
+    .next-step.ready { border-color: #b2d4c4; background: #eff8f2; }
+    .case-links { display: flex; flex-direction: column; gap: 6px; margin-top: 9px; }
+    .case-link { border: 1px solid var(--line); border-radius: 7px; padding: 10px 11px; background: white; color: var(--ink); text-align: left; display: flex; align-items: center; gap: 10px; font-size: 12px; }
+    .case-link:hover { background: #f4f8fa; }
+    .case-link .status { margin-left: auto; }
+    .case-link > span:first-child { min-width: 0; }
+    .activity-details { border-top: 1px solid var(--line); margin-top: 20px; padding-top: 14px; }
+    .activity-details summary { font-size: 13px; font-weight: 600; cursor: pointer; }
+    .activity-list { padding: 0; margin: 12px 0 0; list-style: none; }
+    .activity-list li { position: relative; padding: 0 0 16px 17px; border-left: 1px solid #dbe4e9; font-size: 12px; }
+    .activity-list li::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #7b969f; position: absolute; left: -3.5px; top: 6px; }
+    .activity-list li:last-child { padding-bottom: 0; }
+    .activity-meta { color: var(--muted); font-size: 10px; margin-bottom: 4px; }
+    .activity-note { margin-top: 5px; padding: 6px 8px; background: #f4f7f9; border-radius: 4px; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .action-footer { padding: 16px 25px 18px; border-top: 1px solid var(--line); background: #fbfdfd; position: sticky; bottom: 0; z-index: 2; box-shadow: 0 -5px 12px #18304404; }
+    .action-footer .action-caption { font-size: 11px; color: var(--muted); margin-bottom: 8px; }
+    .action-buttons { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+    .button { display: inline-flex; justify-content: center; align-items: center; gap: 7px; padding: 10px 13px; border: 1px solid #cfdce1; border-radius: 7px; background: white; color: #354e61; font-size: 13px; font-weight: 600; min-height: 40px; }
+    .button:hover { background: #f1f6f7; }
+    .button.primary { background: var(--accent); border-color: var(--accent); color: white; }
+    .button.primary:hover { background: var(--accent-dark); }
+    .text-button { display: inline-flex; align-items: center; gap: 5px; border: 0; background: none; color: #516a7b; font-size: 12px; padding: 7px 4px; text-decoration: underline; text-underline-offset: 3px; }
+    .closed-note { padding: 12px 13px; border: 1px solid #c7dfd1; border-radius: 8px; background: #f0f8f3; font-size: 13px; color: #2f6250; margin-bottom: 17px; }
+    .closed-note.corrected { background: #faf5ef; color: #735a43; border-color: #e7d7c5; }
+    .empty-state { text-align: center; padding: 58px 26px; color: var(--muted); }
+    .empty-state .empty-icon { width: 44px; height: 44px; border-radius: 50%; margin: 0 auto 14px; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; }
+    .empty-state h3 { color: var(--ink); margin-bottom: 7px; font-size: 16px; }
+    .empty-state p { font-size: 13px; margin-bottom: 16px; }
+    .mobile-back { display: none; }
+    #live-status { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #173b3f; color: white; padding: 13px 18px; border-radius: 9px; box-shadow: 0 7px 24px #132c4029; font-size: 13px; z-index: 10; max-width: min(600px, calc(100% - 32px)); width: max-content; }
+    #live-status:empty { display: none; }
+    dialog { border: 1px solid #dbe3e8; padding: 0; border-radius: 15px; width: min(550px, calc(100% - 32px)); max-height: calc(100dvh - 40px); color: var(--ink); box-shadow: 0 18px 70px #142c4033; }
+    dialog::backdrop { background: #122c4073; backdrop-filter: blur(2px); }
+    .dialog-head { padding: 22px 24px 17px; display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--line); }
+    .dialog-head h2 { font-size: 21px; }
+    .dialog-head p { color: var(--muted); font-size: 12px; margin-top: 4px; }
+    .icon-button { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 6px; border: 1px solid var(--line); background: white; color: var(--muted); flex-shrink: 0; }
+    .dialog-body { padding: 20px 24px; }
+    .dialog-intro { color: #4c6072; font-size: 13px; margin-bottom: 18px; }
+    .form-field { margin-bottom: 17px; }
+    .form-field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+    .form-field textarea, .form-field input { display: block; width: 100%; border: 1px solid #bdcdd7; border-radius: 7px; padding: 10px 11px; font-size: 14px; color: var(--ink); background: white; }
+    .form-field textarea { min-height: 92px; resize: vertical; }
+    .form-field small { display: block; margin-top: 5px; font-size: 11px; color: var(--muted); }
+    .record-preview { background: #f3f7f8; border: 1px solid #dce6e8; border-radius: 8px; padding: 12px 13px; margin-bottom: 16px; font-size: 13px; }
+    .record-preview strong { display: block; margin-bottom: 3px; }
+    .record-preview .subtle { color: var(--muted); font-size: 12px; }
+    .check-label { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; margin: 14px 0; }
+    .check-label input { width: 17px; height: 17px; margin: 2px 0 0; accent-color: var(--accent); flex-shrink: 0; }
+    .form-warning { font-size: 12px; border-left: 3px solid #d1aa5d; padding: 9px 11px; background: #fff8e8; color: #795719; margin-bottom: 15px; }
+    .form-error { padding: 10px 12px; background: #fff0ef; color: var(--red); border-radius: 6px; font-size: 13px; margin-bottom: 13px; }
+    .form-error:empty { display: none; }
+    .dialog-footer { padding: 15px 24px; border-top: 1px solid var(--line); display: flex; justify-content: flex-end; gap: 8px; background: #fafcfd; }
+    .guidance-copy { font-size: 14px; }
+    .guidance-copy p { margin-bottom: 12px; color: #455b6d; }
+    .guidance-copy ol { padding-left: 21px; margin: 12px 0 18px; }
+    .guidance-copy li { padding: 0 0 10px 4px; }
+    .guidance-copy strong { color: var(--ink); }
+    .assumption { font-size: 11px; color: #6b7d8b; margin-top: 12px; }
+    .ops-header { padding: 19px; border-bottom: 1px solid var(--line); }
+    .ops-header h2 { font-size: 16px; letter-spacing: 0; }
+    .read-only { color: #596b7b; font-size: 11px; padding: 3px 7px; background: #edf2f5; border-radius: 4px; }
+    .ops-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 15px; }
+    .ops-stat { border: 1px solid #e1e8ed; border-radius: 8px; padding: 10px 12px; background: #fafcfd; font-size: 12px; color: var(--muted); }
+    .ops-stat strong { display: block; font-size: 25px; line-height: 1.25; color: var(--ink); font-weight: 650; margin-bottom: 2px; }
+    .ops-stat.attention strong { color: var(--amber); }
+    .ops-scroll { max-height: calc(100dvh - 410px); min-height: 270px; overflow-y: auto; }
+    .ops-group-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 19px 8px; background: #f8fafc; border-bottom: 1px solid #e7edf1; border-top: 1px solid #e7edf1; font-size: 12px; font-weight: 650; }
+    .ops-list { list-style: none; margin: 0; padding: 0; }
+    .ops-list li + li { border-top: 1px solid #e9edf0; }
+    .ops-row { padding-top: 13px; padding-bottom: 13px; }
+    .ops-row .row-title { font-size: 13px; margin-bottom: 5px; }
+    .ops-row .row-case { margin-bottom: 7px; }
+    .ops-responsibility { display: block; color: #4e6575; font-size: 11px; }
+    .ops-followup { display: block; color: var(--muted); font-size: 11px; margin-top: 3px; }
+    .ops-attention { display: inline-flex; align-items: center; gap: 4px; margin-top: 6px; color: var(--amber); font-size: 10px; font-weight: 650; }
+    .ops-attention svg { width: 12px; height: 12px; }
+    .ops-empty { font-size: 12px; color: var(--muted); padding: 13px 19px; }
+    .ops-archive > summary { padding: 13px 19px; font-size: 12px; color: #4c6375; cursor: pointer; border-top: 1px solid var(--line); }
+    @media (max-width: 820px) { .ops-scroll { max-height: none; min-height: 0; } }
+    @media (min-width: 1700px) { .page { padding-top: 30px; } .detail-panel { max-height: calc(100dvh - 232px); } }
+    @media (max-width: 1050px) { .topbar-inner { gap: 25px; padding: 0 22px; } .page { padding: 22px; } .simulation-inner { padding: 8px 22px; } .workspace { gap: 16px; grid-template-columns: minmax(320px, .88fr) minmax(390px, 1.1fr); } .panel-content, .detail-head { padding-left: 19px; padding-right: 19px; } .action-footer { padding-left: 19px; padding-right: 19px; } .persona { display: none; } }
+    @media (max-width: 820px) {
+      .topbar-inner { min-height: 66px; padding: 0 16px; gap: 22px; flex-wrap: wrap; }
+      .brand { font-size: 17px; } .brand-mark { width: 29px; height: 29px; }
+      .topbar-end { gap: 8px; } .top-reset { font-size: 0; padding: 8px; } .top-reset svg { width: 17px; height: 17px; }
+      .view-nav { gap: 14px; font-size: 13px; min-height: 66px; }
+      .simulation-inner { padding: 8px 16px; display: block; font-size: 11px; } .simulation-secondary { display: none; }
+      .page { padding: 20px 16px; } .page-heading { align-items: flex-start; gap: 12px; } h1 { font-size: 24px; }
+      .page-heading p { font-size: 12px; } .page-heading .team-key { font-size: 11px; } .guidance-button { padding: 8px; font-size: 0; } .guidance-button svg { width: 19px; height: 19px; }
+      .workspace { display: block; } .need-list { max-height: none; min-height: 0; } .detail-panel { max-height: none; min-height: 0; }
+      body[data-mobile-detail="false"] .detail-panel { display: none; }
+      body[data-mobile-detail="true"] .queue, body[data-mobile-detail="true"] .operations-panel { display: none; }
+      .mobile-back { display: inline-flex; margin-bottom: 14px; border: 0; background: none; color: var(--accent-dark); font-size: 13px; padding: 0; align-items: center; gap: 5px; }
+      .action-footer { position: static; } .detail-title { font-size: 22px; } .detail-panel { border-radius: 11px; }
+      .row-title { font-size: 16px; } .need-row { padding-top: 18px; padding-bottom: 18px; }
+    }
+    @media (max-width: 410px) { .brand { gap: 7px; font-size: 15px; } .topbar-inner { gap: 13px; } .view-nav { gap: 10px; font-size: 12px; } .nav-button svg { display: none; } .responsibility-grid { grid-template-columns: 1fr; gap: 13px; } .row-top { flex-wrap: wrap; gap: 3px; } .dialog-body, .dialog-head, .dialog-footer { padding-left: 18px; padding-right: 18px; } }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; } }
+    @media print { .topbar, .simulation, .queue, .operations-panel, .action-footer, .guidance-button, .mobile-back, #live-status { display: none !important; } .workspace { display: block; } .detail-panel { display: block !important; max-height: none; overflow: visible; border: 0; } .page { padding: 0; } }
+  </style>
+</head>
+<body>
+  <div id="app"><main><h1>Work Triage</h1><p>Fictional legal operations prototype.</p></main></div>
+  <div id="live-status" role="status" aria-live="polite" aria-atomic="true"></div>
+  <dialog id="action-dialog" aria-labelledby="dialog-title"></dialog>
+  <noscript>This prototype requires JavaScript. It makes no network requests.</noscript>
+
+<script id="triage-core">
+'use strict';
+globalThis.TriageCore = (() => {
+  const DEMO_NOW = '2026-10-14T09:00';
+  const CURRENT_USER = Object.freeze({ name: 'Alex Rivera', role: 'Case manager' });
+  const DISPOSITIONS = Object.freeze({
+    needs_decision: 'Needs decision', requested: 'Requested', in_progress: 'In progress',
+    waiting: 'Waiting', resolved: 'Resolved', corrected: 'Signal corrected'
+  });
+  const clone = value => JSON.parse(JSON.stringify(value));
+  const person = (name, role) => ({ name, role });
+  const evidence = (id, source, at, text, quality = 'Recorded') => ({ id, source, at, text, quality });
+
+  function createInitialState() {
+    const coordinator = person(CURRENT_USER.name, CURRENT_USER.role);
+    const cases = {
+      'DEMO-101': { id: 'DEMO-101', client: 'Avery Cole', value: 30000, coordinator,
+        attorney: person('Taylor Bennett', 'Attorney'), paralegal: person('Jamie Torres', 'Paralegal'),
+        steps: { callback: { title: 'Client callback', owner: CURRENT_USER.name, status: 'Planned', complete: false }, documents: { title: 'Review provider documents after delivery', owner: 'Jamie Torres', status: 'Waiting for documents', complete: false } } },
+      'DEMO-102': { id: 'DEMO-102', client: 'Blake Rowan', value: 240000, coordinator,
+        attorney: person('Taylor Bennett', 'Attorney'), paralegal: person('Jamie Torres', 'Paralegal'),
+        steps: { documents: { title: 'Review provider documents when received', owner: 'Jamie Torres', status: 'Waiting for documents', complete: false } } },
+      'DEMO-103': { id: 'DEMO-103', client: 'Casey Tran', value: null, coordinator,
+        attorney: person('Taylor Bennett', 'Attorney'), paralegal: person('Jamie Torres', 'Paralegal'),
+        receipt: { expectedReference: 'DOC-DEMO-103', receivedReference: 'DOC-DEMO-103', uploadedAt: '2026-10-12T14:20', confirmed: false },
+        steps: { documentReview: { title: 'Paralegal document review', owner: 'Jamie Torres', accepted: true, status: 'Waiting for receipt confirmation', complete: false } } },
+      'DEMO-104': { id: 'DEMO-104', client: 'Devon Shah', value: null, coordinator,
+        attorney: person('Taylor Bennett', 'Attorney'), paralegal: person('Jamie Torres', 'Paralegal'),
+        steps: { attorneyReview: { title: 'Attorney review of assembled materials', owner: null, status: 'Review not yet requested', complete: false } } },
+      'DEMO-105': { id: 'DEMO-105', client: 'Ellis Brooks', value: null, coordinator,
+        attorney: person('Taylor Bennett', 'Attorney'), paralegal: person('Jamie Torres', 'Paralegal'),
+        steps: { packet: { title: 'Prepare document packet', owner: 'Jamie Torres', accepted: true, status: 'In progress', complete: false } } },
+      'DEMO-106': { id: 'DEMO-106', client: 'Finley Park', value: null, coordinator,
+        attorney: person('Taylor Bennett', 'Attorney'), paralegal: person('Jamie Torres', 'Paralegal'), reference: 'REF-106-A',
+        steps: { providerProcessing: { title: 'Provider processes the document request', owner: 'External provider', status: 'Reference number needed', complete: false } } }
+    };
+    const needs = [
+      { id: 'callback', stepKey: 'callback', caseId: 'DEMO-101', type: 'callback', category: 'commitment',
+        title: 'Client callback promised for today', disposition: 'needs_decision',
+        identifiedAt: '2026-10-13T16:00', commitmentAt: '2026-10-14T11:00', reviewAt: null,
+        actionOwner: coordinator, followUpOwner: CURRENT_USER.name,
+        significance: 'A recorded client promise is due at 11:00 a.m. today.',
+        evidence: [evidence('promise', 'Case note', '2026-10-13T16:00', 'Case manager Alex Rivera agreed to call client Avery Cole by 11:00 a.m. on October 14 with an update on the document request.'),
+          evidence('call-log', 'Communication log', '2026-10-14T08:40', 'No completed callback is recorded against this promise. Check for any more recent contact before recording an outcome.')]
+      },
+      { id: 'avery-records', stepKey: 'documents', caseId: 'DEMO-101', type: 'external_wait', category: 'dependency',
+        title: 'Provider documents are expected October 16', disposition: 'waiting',
+        identifiedAt: '2026-10-12T10:10', commitmentAt: null, reviewAt: '2026-10-16T14:00',
+        actionOwner: null, waitingOn: 'External provider', followUpOwner: CURRENT_USER.name,
+        waitingReason: 'Provider acknowledged the request and expects to return the documents October 16.',
+        significance: 'Document availability affects a later review; the provider has supplied an expected return date.',
+        evidence: [evidence('acknowledged', 'Provider acknowledgment', '2026-10-12T10:10', 'The provider acknowledged the request and expects to return the documents on October 16.'),
+          evidence('followup', 'Coordination note', '2026-10-12T10:30', 'Case manager Alex Rivera will check the request on October 16 at 2:00 p.m. This dependency is separate from the client callback.')]
+      },
+      { id: 'blake-records', stepKey: 'documents', caseId: 'DEMO-102', type: 'external_wait', category: 'dependency',
+        title: 'Acknowledged document request is awaiting delivery', disposition: 'waiting',
+        identifiedAt: '2026-10-13T10:00', commitmentAt: null, reviewAt: '2026-10-19T14:00',
+        actionOwner: null, waitingOn: 'External provider', followUpOwner: CURRENT_USER.name,
+        waitingReason: 'Provider expects delivery October 19. No earlier response is currently required by the recorded plan.',
+        significance: 'A later document review depends on delivery. The illustrative case value is context, not a reason to chase early.',
+        evidence: [evidence('acknowledged', 'Provider acknowledgment', '2026-10-13T10:00', 'Request accepted. Expected document delivery is October 19.'),
+          evidence('plan', 'Recorded follow-up plan', '2026-10-13T10:15', 'Case manager Alex Rivera will review delivery status October 19 at 2:00 p.m. No conflicting earlier commitment is present in this fictional record.')]
+      },
+      { id: 'receipt', stepKey: 'documentReview', caseId: 'DEMO-103', type: 'receipt', category: 'blocker',
+        title: 'Document arrived; receipt still shows missing', disposition: 'needs_decision',
+        identifiedAt: '2026-10-12T14:20', commitmentAt: null, reviewAt: null,
+        actionOwner: coordinator, followUpOwner: CURRENT_USER.name, uncertainty: true,
+        significance: 'An existing paralegal review is waiting on a receipt condition that may already be satisfied.',
+        evidence: [evidence('upload', 'Document receipt log', '2026-10-12T14:20', 'File DOC-DEMO-103 was received for Casey Tran. The reference matches the expected document. Receipt alone does not establish substantive sufficiency.'),
+          evidence('checklist', 'Receipt checklist', '2026-10-12T09:00', 'Expected document: DOC-DEMO-103. Receipt status: not recorded.', 'Conflicting'),
+          evidence('review', 'Existing review task', '2026-10-12T09:05', 'Paralegal Jamie Torres accepted the review. It is waiting for receipt confirmation. No task is overdue in this scenario.')]
+      },
+      { id: 'attorney-review', stepKey: 'attorneyReview', caseId: 'DEMO-104', type: 'attorney_review', category: 'blocker',
+        title: 'Attorney review needs a recorded request', disposition: 'needs_decision',
+        identifiedAt: '2026-10-13T13:00', commitmentAt: null, reviewAt: null,
+        actionOwner: null, followUpOwner: CURRENT_USER.name,
+        significance: 'The recorded next step requires attorney judgment. An intended recipient does not establish acceptance.',
+        evidence: [evidence('review-needed', 'Case note', '2026-10-13T13:00', 'Assembled materials are ready for the case attorney to review and determine the next step.'),
+          evidence('team', 'Case-team record', '2026-10-13T13:05', 'Attorney Taylor Bennett is the listed case attorney. No request or acceptance for this review is recorded. The case manager may record a request in this fictional workflow.')]
+      },
+      { id: 'packet', stepKey: 'packet', caseId: 'DEMO-105', type: 'accepted_work', category: 'operational',
+        title: 'Document packet preparation is underway', disposition: 'in_progress',
+        identifiedAt: '2026-10-13T11:00', commitmentAt: null, reviewAt: '2026-10-15T15:00',
+        actionOwner: person('Jamie Torres', 'Paralegal'), followUpOwner: CURRENT_USER.name,
+        significance: 'An accepted action has a recorded owner and a future review point.',
+        evidence: [evidence('accepted', 'Task acceptance', '2026-10-13T11:00', 'Paralegal Jamie Torres accepted preparation of the document packet and recorded that work is in progress.'),
+          evidence('review-point', 'Coordination note', '2026-10-13T11:15', 'Review progress October 15 at 3:00 p.m. Acceptance is recorded; completion is not.')]
+      },
+      { id: 'reference', stepKey: 'providerProcessing', caseId: 'DEMO-106', type: 'reference', category: 'blocker',
+        title: 'Provider needs a reference number to proceed', disposition: 'needs_decision',
+        identifiedAt: '2026-10-14T08:15', commitmentAt: null, reviewAt: null,
+        actionOwner: coordinator, followUpOwner: CURRENT_USER.name,
+        significance: 'The provider cannot process the request until the reference is supplied.',
+        evidence: [evidence('provider-message', 'Provider message', '2026-10-14T08:15', 'Please provide the request reference before we can process the documents.'),
+          evidence('reference', 'Request record', '2026-10-14T08:20', 'The recorded reference is REF-106-A. No response supplying it has been recorded.')]
+      }
+    ];
+    const activity = needs.map((need, index) => ({ id: 'seed-' + index, needId: need.id, at: need.identifiedAt,
+      actor: 'Fictional source record', kind: 'source', text: 'Starting record: ' + DISPOSITIONS[need.disposition] + '.', note: '' }));
+    return { version: 1, now: DEMO_NOW, cases, needs, activity, sequence: 0 };
+  }
+
+  const isClosed = need => ['resolved', 'corrected'].includes(need.disposition);
+  // commitmentAt represents a confirmed source-record commitment in this demo.
+  // A free-text signal correction cannot change that source obligation.
+  const hasOutstandingCommitment = (state, need) => Boolean(need.commitmentAt &&
+    state.cases[need.caseId]?.steps[need.stepKey]?.complete !== true);
+  function attentionReason(need, now = DEMO_NOW) {
+    if (isClosed(need)) return need.disposition === 'corrected' ? 'The attention signal was corrected; underlying professional work was not completed by this change.' : 'This individual attention need has been resolved.';
+    if (need.commitmentAt && need.commitmentAt.slice(0, 10) <= now.slice(0, 10))
+      return 'The recorded commitment is due today or earlier and remains unfulfilled. A waiting or requested disposition does not remove it.';
+    if (need.reviewAt && need.reviewAt <= now) return 'The recorded follow-up point has arrived. Review the current disposition and decide the next response.';
+    if (need.disposition === 'needs_decision') return need.uncertainty ? 'Recorded sources conflict. Verify the narrow condition before choosing a response.' : 'An appropriate response has not yet been recorded.';
+    if (['waiting', 'requested'].includes(need.disposition) && (!need.reviewAt || !need.followUpOwner)) return 'Follow-up responsibility or a review point is missing.';
+    if (need.disposition === 'requested') return 'A request is recorded, acceptance is still pending, and the next follow-up point is in the future.';
+    if (need.disposition === 'waiting') return 'The dependency has a recorded reason, follow-up owner, and future review point.';
+    return 'An action owner has accepted the work and its next review point is in the future.';
+  }
+  function needsAttention(need, now = DEMO_NOW) {
+    if (isClosed(need)) return false;
+    return Boolean((need.commitmentAt && need.commitmentAt.slice(0, 10) <= now.slice(0, 10)) ||
+      (need.reviewAt && need.reviewAt <= now) || need.disposition === 'needs_decision' ||
+      (['waiting', 'requested'].includes(need.disposition) && (!need.reviewAt || !need.followUpOwner)));
+  }
+  function priority(need, now = DEMO_NOW) {
+    if (need.commitmentAt && need.commitmentAt.slice(0, 10) <= now.slice(0, 10))
+      return { tier: 0, label: 'Time-sensitive', tone: 'amber', reason: 'A recorded commitment is due on or before the demo day. It takes precedence over case value.' };
+    if (need.reviewAt && need.reviewAt <= now && !isClosed(need))
+      return { tier: 0, label: 'Follow-up due', tone: 'amber', reason: 'The recorded review point has arrived. Follow-up is now needed even though the work may still be requested, in progress, or waiting.' };
+    if (need.category === 'blocker') return { tier: 1, label: need.uncertainty ? 'Verify a blocker' : 'Blocks a next step', tone: 'blue', reason: 'A specific next step is blocked or may be blocked. The person reviewing the source information decides the appropriate response.' };
+    if (need.category === 'dependency') return { tier: 3, label: 'External dependency', tone: 'neutral', reason: 'The dependency matters to progress. Its waiting conditions and review point determine whether attention is needed now.' };
+    return { tier: 2, label: 'Planned operational work', tone: 'neutral', reason: 'Operational work remains visible with its owner and review point. Disposition is separate from importance.' };
+  }
+  function sortedNeeds(state, filter = 'attention') {
+    return state.needs.filter(n => filter !== 'attention' || needsAttention(n, state.now)).slice().sort((a, b) => {
+      const attentionDifference = Number(needsAttention(b, state.now)) - Number(needsAttention(a, state.now));
+      const closedDifference = Number(isClosed(a)) - Number(isClosed(b));
+      const tierDifference = priority(a, state.now).tier - priority(b, state.now).tier;
+      const aTime = a.commitmentAt || a.reviewAt || a.identifiedAt;
+      const bTime = b.commitmentAt || b.reviewAt || b.identifiedAt;
+      return attentionDifference || closedDifference || tierDifference || aTime.localeCompare(bTime) || a.id.localeCompare(b.id);
+    });
+  }
+  function summary(state) {
+    const byDisposition = Object.fromEntries(Object.keys(DISPOSITIONS).map(key => [key, 0]));
+    state.needs.forEach(need => byDisposition[need.disposition]++);
+    return { cases: Object.keys(state.cases).length, total: state.needs.length,
+      attention: state.needs.filter(n => needsAttention(n, state.now)).length,
+      open: state.needs.filter(n => !isClosed(n)).length, byDisposition };
+  }
+  function availableActions(state, need) {
+    if (isClosed(need)) return [];
+    const actions = [];
+    if (need.type === 'receipt' && !state.cases[need.caseId].receipt.confirmed) actions.push('confirm_receipt');
+    if (need.type === 'attorney_review' && !need.request) actions.push('request_review');
+    if (need.type === 'callback') actions.push('record_callback');
+    if (need.type === 'reference' && !need.referenceProvided) actions.push('record_provider_followup');
+    if (['waiting', 'requested'].includes(need.disposition)) actions.push('update_followup');
+    else if (need.type !== 'accepted_work') actions.push('record_wait');
+    if (!hasOutstandingCommitment(state, need)) actions.push('correct_signal');
+    return [...new Set(actions)];
+  }
+  function evidenceFor(state, need) {
+    const items = clone(need.evidence);
+    if (need.type === 'receipt' && state.cases[need.caseId].receipt.confirmed) {
+      const checklist = items.find(item => item.id === 'checklist');
+      Object.assign(checklist, { at: state.cases[need.caseId].receipt.confirmedAt, quality: 'Updated',
+        text: 'Receipt of DOC-DEMO-103 is recorded. Substantive sufficiency has not been approved. The existing paralegal review is ready and remains unfinished.' });
+      const review = items.find(item => item.id === 'review');
+      Object.assign(review, { at: state.cases[need.caseId].receipt.confirmedAt, quality: 'Updated', text: 'Paralegal Jamie Torres remains the accepted owner. Receipt confirmation has made the existing review ready to proceed. It is not complete.' });
+    }
+    if (need.type === 'callback' && need.disposition === 'resolved') {
+      Object.assign(items.find(item => item.id === 'call-log'), { at: need.resolvedAt, quality: 'Updated',
+        text: 'A completed fictional callback is now recorded against this promise. The outcome is retained in activity. The document dependency remains separate.' });
+    }
+    if (need.request) {
+      Object.assign(items.find(item => item.id === 'team'), { at: need.request.at, quality: 'Updated',
+        text: 'Attorney ' + need.request.to.name + ' remains the listed case attorney. A request is recorded. Acceptance and completion are not recorded; case manager Alex Rivera retains follow-up responsibility.' });
+    }
+    return items;
+  }
+  function requireText(value, label) {
+    if (typeof value !== 'string' || !value.trim()) throw new Error(label + ' is required.');
+    if (value.trim().length > 2000) throw new Error(label + ' must be 2,000 characters or fewer.');
+    return value.trim();
+  }
+  function requireReview(value, now) {
+    if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) throw new Error('Choose a valid follow-up date and time.');
+    const parsed = new Date(value + ':00Z');
+    if (!Number.isFinite(parsed.getTime()) || parsed.toISOString().slice(0, 16) !== value) throw new Error('Choose a valid follow-up date and time.');
+    if (value <= now) throw new Error('The follow-up point must be after the fixed demo time.');
+    return value;
+  }
+  function applyAction(current, id, action, fields = {}) {
+    const existing = current.needs.find(need => need.id === id);
+    if (!existing) throw new Error('This attention need could not be found.');
+    if (action === 'correct_signal' && hasOutstandingCommitment(current, existing))
+      throw new Error('An outstanding recorded commitment cannot be dismissed with a signal correction. Verification and correction of its source record are required outside this prototype.');
+    if (!availableActions(current, existing).includes(action)) throw new Error('This action is not available for the current need and responsibility.');
+    const state = clone(current);
+    const need = state.needs.find(item => item.id === id);
+    const caseRecord = state.cases[need.caseId];
+    let text = '', note = '', message = '';
+    if (action === 'confirm_receipt') {
+      if (fields.receiptVerified !== true) throw new Error('Confirm that you checked the received reference against the expected document.');
+      if (caseRecord.receipt.expectedReference !== caseRecord.receipt.receivedReference) throw new Error('The references do not match. Resolve the discrepancy before confirming receipt.');
+      caseRecord.receipt.confirmed = true;
+      caseRecord.receipt.confirmedAt = state.now;
+      caseRecord.receipt.confirmedBy = CURRENT_USER.name;
+      caseRecord.steps[need.stepKey].status = 'Ready to proceed';
+      need.disposition = 'resolved';
+      need.title = 'Document receipt verified and recorded';
+      need.resolvedAt = state.now;
+      need.uncertainty = false;
+      text = 'Verified and recorded document receipt. The existing paralegal review is ready to proceed and remains unfinished.';
+      note = typeof fields.note === 'string' ? fields.note.trim().slice(0, 2000) : '';
+      message = 'Receipt confirmed. The paralegal review is ready, not complete.';
+    } else if (action === 'request_review') {
+      note = requireText(fields.note, 'Request context');
+      const reviewAt = requireReview(fields.reviewAt, state.now);
+      if (fields.recipient && fields.recipient !== caseRecord.attorney.name) throw new Error('This prototype requests review from the existing case attorney. It does not reassign attorneys.');
+      need.request = { to: clone(caseRecord.attorney), at: state.now, by: CURRENT_USER.name, accepted: false, completed: false, note };
+      need.disposition = 'requested';
+      need.title = 'Attorney review requested; acceptance pending';
+      need.actionOwner = null;
+      need.reviewAt = reviewAt;
+      need.followUpOwner = CURRENT_USER.name;
+      caseRecord.steps[need.stepKey].status = 'Requested; acceptance pending';
+      text = 'Recorded a review request for attorney ' + caseRecord.attorney.name + '. Acceptance and completion are not recorded. Case manager Alex Rivera retains follow-up responsibility.';
+      message = 'Request recorded. Attorney acceptance is still pending.';
+    } else if (action === 'record_callback') {
+      note = requireText(fields.note, 'Callback outcome');
+      if (fields.completed !== true) throw new Error('Confirm that the fictional callback was completed before recording its outcome.');
+      need.disposition = 'resolved';
+      need.title = 'Client callback completed and recorded';
+      need.resolvedAt = state.now;
+      caseRecord.steps[need.stepKey].status = 'Callback recorded as complete';
+      caseRecord.steps[need.stepKey].complete = true;
+      text = 'Recorded a completed fictional callback. The separate document dependency is unchanged.';
+      message = 'Callback outcome recorded. Client Avery’s separate document dependency remains open.';
+    } else if (action === 'record_provider_followup') {
+      note = requireText(fields.note, 'Follow-up outcome');
+      const reviewAt = requireReview(fields.reviewAt, state.now);
+      if (fields.referenceSupplied !== true) throw new Error('Confirm that the reference was supplied in this fictional scenario.');
+      need.referenceProvided = true;
+      need.title = 'Provider processing confirmation is pending';
+      need.disposition = 'waiting';
+      need.waitingOn = 'External provider';
+      need.waitingReason = 'Reference supplied; awaiting confirmation that processing can proceed.';
+      need.significance = 'The reference has been supplied. Provider processing is not confirmed; review the response at the recorded follow-up point.';
+      need.actionOwner = null;
+      need.reviewAt = reviewAt;
+      need.followUpOwner = CURRENT_USER.name;
+      caseRecord.steps[need.stepKey].status = 'Awaiting provider confirmation';
+      need.evidence.push(evidence('reference-supplied', 'Recorded fictional follow-up', state.now, 'Case manager Alex Rivera recorded supplying ' + caseRecord.reference + '. Provider confirmation is still pending.', 'Updated'));
+      text = 'Recorded supplying the reference. The request remains waiting for provider confirmation, with a follow-up point.';
+      message = 'Follow-up recorded. Provider confirmation remains outstanding.';
+    } else if (['record_wait', 'update_followup'].includes(action)) {
+      note = requireText(fields.note, 'Waiting or follow-up reason');
+      need.reviewAt = requireReview(fields.reviewAt, state.now);
+      need.followUpOwner = CURRENT_USER.name;
+      need.waitingReason = note;
+      if (need.disposition !== 'requested') need.disposition = 'waiting';
+      text = need.disposition === 'requested' ? 'Updated follow-up for the review request. Acceptance remains pending.' : 'Recorded a waiting condition and a follow-up point. Any unresolved recorded commitment remains in force.';
+      message = needsAttention(need, state.now) ? 'Follow-up recorded. The unresolved commitment keeps this need in Needs attention.' : 'Follow-up recorded. This need remains available in All tracked.';
+    } else if (action === 'correct_signal') {
+      note = requireText(fields.note, 'Correction reason');
+      need.disposition = 'corrected';
+      need.correctedAt = state.now;
+      need.correctionReason = note;
+      text = 'Corrected the attention signal. This is not recorded as completed work; underlying tasks and professional decisions are unchanged.';
+      message = 'Signal corrected and retained in All tracked. No underlying task was completed.';
+    }
+    state.sequence++;
+    state.activity.unshift({ id: 'event-' + state.sequence, needId: id, at: state.now, actor: CURRENT_USER.name, kind: action, text, note });
+    return { state, message };
+  }
+  return Object.freeze({ DEMO_NOW, CURRENT_USER, DISPOSITIONS, createInitialState, clone, isClosed,
+    hasOutstandingCommitment, needsAttention, attentionReason, priority, sortedNeeds, summary, availableActions, evidenceFor, applyAction });
+})();
+</script>
+<script id="triage-ui">
+'use strict';
+(() => {
+  const C = globalThis.TriageCore;
+  let state = C.createInitialState();
+  let view = 'work';
+  let filter = 'attention';
+  let selectedId = 'callback';
+  let mobileDetail = false;
+  let activeAction = null;
+  let toastTimer = null;
+  const app = document.getElementById('app');
+  const dialog = document.getElementById('action-dialog');
+  const liveStatus = document.getElementById('live-status');
+  const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+  const svgPaths = {
+    brand: '<path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4z"/><path d="m14 17 2 2 4-5"/>',
+    list: '<path d="M8 6h12M8 12h12M8 18h12"/><path d="M4 6h.01M4 12h.01M4 18h.01"/>',
+    grid: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
+    clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/>',
+    reset: '<path d="M3 10a9 9 0 1 1 2 8M3 4v6h6"/>',
+    check: '<path d="m5 12 4 4L19 6"/>',
+    file: '<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9zM14 3v6h6M8 13h8M8 17h6"/>',
+    arrow: '<path d="M5 12h14m-5-5 5 5-5 5"/>',
+    back: '<path d="M19 12H5m5-5-5 5 5 5"/>',
+    close: '<path d="m6 6 12 12M6 18 18 6"/>',
+    people: '<circle cx="9" cy="8" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M16 5a3 3 0 0 1 0 6M21 21v-3a6 6 0 0 0-3-5"/>',
+    link: '<path d="m10 13 4-4M8 16l-1 1a4 4 0 0 1-6-6l4-4a4 4 0 0 1 6 0M16 8l1-1a4 4 0 0 1 6 6l-4 4a4 4 0 0 1-6 0"/>',
+    flag: '<path d="M5 21V3m0 1c5-4 9 4 14 0v10c-5 4-9-4-14 0"/>',
+    send: '<path d="m22 2-7 20-4-9L2 9l20-7ZM22 2 11 13"/>',
+    pause: '<path d="M8 5v14M16 5v14"/>',
+    edit: '<path d="m16 3 5 5M4 20l5-1L21 7a2 2 0 0 0-5-5L4 14z"/>'
+  };
+  const icon = name => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (svgPaths[name] || svgPaths.info) + '</svg>';
+  const statusBadge = need => '<span class="status ' + esc(need.disposition) + '">' + esc(C.DISPOSITIONS[need.disposition]) + '</span>';
+  const personLabel = person => person ? person.role + ' ' + person.name : 'Not assigned';
+  const clientLabel = client => 'Client ' + client;
+  const money = value => value === null ? 'Not recorded' : '$' + value.toLocaleString('en-US');
+  function formatTime(value) {
+    if (!value) return 'Not set';
+    return new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'UTC' }).format(new Date(value + ':00Z'));
+  }
+  function formatDate(value, includeTime = true) {
+    if (!value) return 'Not recorded yet';
+    const date = new Date(value + ':00Z');
+    const options = includeTime ? { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'UTC' } : { month: 'short', day: 'numeric', timeZone: 'UTC' };
+    return new Intl.DateTimeFormat('en-US', options).format(date);
+  }
+  function timeHint(need) {
+    if (C.isClosed(need)) return 'Recorded ' + formatDate(need.resolvedAt || need.correctedAt, false);
+    if (need.commitmentAt) return (need.commitmentAt.slice(0, 10) === state.now.slice(0, 10) ? 'Today, ' + formatTime(need.commitmentAt) : formatDate(need.commitmentAt));
+    if (need.reviewAt) return 'Review ' + formatDate(need.reviewAt, false);
+    return need.type === 'receipt' ? 'No overdue task' : 'Response needed';
+  }
+  function responsibleLabel(need) {
+    if (C.isClosed(need)) return need.disposition === 'resolved' ? 'Outcome recorded' : 'Correction recorded';
+    if (need.request) return 'Requested from ' + personLabel(need.request.to);
+    if (need.actionOwner) return need.actionOwner.name === C.CURRENT_USER.name ? 'Your next action (case manager)' : personLabel(need.actionOwner);
+    return need.waitingOn || 'Next owner unconfirmed';
+  }
+  function needRow(need) {
+    const caseRecord = state.cases[need.caseId];
+    const p = C.priority(need, state.now);
+    return '<li><button class="need-row" data-select="' + esc(need.id) + '" data-focus-key="need-' + esc(need.id) + '" aria-pressed="' + String(need.id === selectedId) + '">' +
+      '<span class="row-top"><span class="priority-label ' + p.tone + '">' + icon(p.tier === 0 ? 'clock' : 'flag') + esc(p.label) + '</span><span class="row-time">' + esc(timeHint(need)) + '</span></span>' +
+      '<span class="row-title">' + esc(need.title) + '</span><span class="row-case">' + esc(clientLabel(caseRecord.client)) + ' <span class="row-case-id">· ' + esc(need.caseId) + '</span>' + (caseRecord.value !== null ? '<span class="money-context">· Est. ' + esc(money(caseRecord.value)) + '</span>' : '') + '</span>' +
+      '<span class="row-bottom">' + statusBadge(need) + '<span class="responsible">' + esc(responsibleLabel(need)) + '</span></span></button></li>';
+  }
+  function queueMarkup() {
+    const totals = C.summary(state);
+    const rows = C.sortedNeeds(state, filter);
+    return '<section class="queue" aria-label="Attention needs"><div class="queue-top"><div class="queue-title"><h2>Your work list</h2><span class="scope-note">' + totals.cases + ' demo cases</span></div>' +
+      '<div class="filter-group" aria-label="Work list filter"><button class="filter-button" data-filter="attention" data-focus-key="filter-attention" aria-pressed="' + (filter === 'attention') + '">Needs attention <span class="filter-count" data-count="attention">' + totals.attention + '</span></button>' +
+      '<button class="filter-button" data-filter="all" data-focus-key="filter-all" aria-pressed="' + (filter === 'all') + '">All tracked <span class="filter-count">' + totals.total + '</span></button></div></div>' +
+      (rows.length ? '<ul class="need-list">' + rows.map(needRow).join('') + '</ul>' : '<div class="empty-state"><div class="empty-icon">' + icon('check') + '</div><h3>No needs require attention now</h3><p>At the fixed demo time, the remaining work is being tracked. This does not establish that every case is healthy.</p><button class="button" data-filter="all">View all tracked work</button></div>') +
+      '<div class="queue-foot">Each row is one attention need. A case can have several.</div></section>';
+  }
+  function evidenceMarkup(need) {
+    return C.evidenceFor(state, need).map(item => '<article class="evidence-card"><div class="evidence-head"><span class="evidence-source">' + esc(item.source) + '</span><span class="quality ' + esc(item.quality.toLowerCase()) + '">' + esc(item.quality) + '</span></div><p>' + esc(item.text) + '</p><time datetime="' + esc(item.at) + '">' + esc(formatDate(item.at)) + ' · demo record</time></article>').join('');
+  }
+  function operationsRow(need) {
+    const caseRecord = state.cases[need.caseId];
+    const responsible = need.request ? 'Requested from ' + personLabel(need.request.to) + '; acceptance pending' :
+      need.actionOwner ? 'Next action: ' + personLabel(need.actionOwner) : need.waitingOn ? 'Waiting on: ' + need.waitingOn : 'Next action: no accepted owner';
+    const followup = C.isClosed(need) ? 'Retained in history; linked work remains separate.' :
+      'Follow-up: ' + (need.followUpOwner ? 'Case manager ' + need.followUpOwner : 'Not recorded') + ' · ' + (need.reviewAt ? formatDate(need.reviewAt) : need.commitmentAt ? 'Commitment ' + formatDate(need.commitmentAt) : 'Response not yet recorded');
+    return '<li><button class="need-row ops-row" data-select="' + need.id + '" data-focus-key="need-' + need.id + '" aria-pressed="' + (need.id === selectedId) + '"><span class="row-title">' + esc(need.title) + '</span><span class="row-case">' + esc(clientLabel(caseRecord.client)) + ' · ' + esc(need.caseId) + '</span>' +
+      (C.isClosed(need) ? statusBadge(need) : '<span class="ops-responsibility">' + esc(responsible) + '</span>') + '<span class="ops-followup">' + esc(followup) + '</span>' +
+      (C.needsAttention(need, state.now) ? '<span class="ops-attention">' + icon('clock') + 'Needs attention now</span>' : '') + '</button></li>';
+  }
+  function operationsMarkup() {
+    const totals = C.summary(state);
+    const ordered = C.sortedNeeds(state, 'all');
+    const group = disposition => {
+      const rows = ordered.filter(n => n.disposition === disposition);
+      return '<section class="ops-group" aria-label="' + C.DISPOSITIONS[disposition] + '"><h3 class="ops-group-heading">' + C.DISPOSITIONS[disposition] + '<span class="filter-count" data-disposition-count="' + disposition + '">' + rows.length + '</span></h3>' +
+        (rows.length ? '<ul class="ops-list">' + rows.map(operationsRow).join('') + '</ul>' : '<p class="ops-empty">No needs in this disposition.</p>') + '</section>';
+    };
+    return '<section class="operations-panel" aria-label="Operations follow-through"><div class="ops-header"><div class="queue-title"><h2>Recorded work and follow-through</h2><span class="read-only">Read only</span></div><div class="ops-summary"><div class="ops-stat attention"><strong data-ops-count="attention">' + totals.attention + '</strong>need attention now</div><div class="ops-stat"><strong data-ops-count="open">' + totals.open + '</strong>open attention needs</div></div></div><div class="ops-scroll">' +
+      ['needs_decision', 'requested', 'in_progress', 'waiting'].map(group).join('') +
+      '<details class="ops-archive"' + (ordered.some(n => C.isClosed(n) && n.id === selectedId) ? ' open' : '') + '><summary>Resolved and corrected (' + (totals.byDisposition.resolved + totals.byDisposition.corrected) + ')</summary>' + group('resolved') + group('corrected') + '</details></div><div class="queue-foot">Counts cover attention needs, not every task or case outcome. Inspect evidence and activity to assess the response.</div></section>';
+  }
+  function activityMarkup(need) {
+    const events = state.activity.filter(event => event.needId === need.id);
+    const hasAction = events.some(event => event.kind !== 'source');
+    return '<details class="activity-details"' + (hasAction ? ' open' : '') + '><summary>Activity history <span class="scope-note">(' + events.length + ')</span></summary><ol class="activity-list">' + events.map(event => '<li><div class="activity-meta">' + esc(formatDate(event.at)) + ' · ' + esc(event.actor) + '</div><p>' + esc(event.text) + '</p>' + (event.note ? '<p class="activity-note">' + esc(event.note) + '</p>' : '') + '</li>').join('') + '</ol></details>';
+  }
+  const actionLabels = {
+    confirm_receipt: 'Confirm receipt', request_review: 'Request attorney review', record_callback: 'Record callback outcome',
+    record_provider_followup: 'Record provider follow-up', record_wait: 'Record a wait', update_followup: 'Update follow-up', correct_signal: 'Correct signal'
+  };
+  const actionIcons = { confirm_receipt: 'check', request_review: 'send', record_callback: 'check', record_provider_followup: 'edit', record_wait: 'pause', update_followup: 'clock', correct_signal: 'edit' };
+  function actionFooter(need) {
+    if (view === 'operations') return '<footer class="action-footer"><p class="action-caption">Read-only Operations perspective. Evidence and activity use the same work records.</p></footer>';
+    if (C.isClosed(need)) return '<footer class="action-footer"><p class="action-caption">' + (need.disposition === 'resolved' ? 'This attention need is resolved. Other needs and unfinished work remain independent.' : 'The corrected signal remains in the history. It is not counted as completed work.') + '</p><button class="button" data-filter="all">View all tracked work ' + icon('arrow') + '</button></footer>';
+    const actions = C.availableActions(state, need);
+    const main = actions.find(action => action !== 'correct_signal');
+    const buttons = actions.map(action => '<button class="' + (action === 'correct_signal' ? 'text-button' : 'button' + (action === main ? ' primary' : '')) + '" data-action="' + action + '" data-need="' + need.id + '" data-focus-key="action-' + action + '">' + (action === 'correct_signal' ? '' : icon(actionIcons[action])) + esc(actionLabels[action]) + '</button>').join('');
+    const caption = need.type === 'accepted_work' ? 'The accepted work stays with paralegal Jamie Torres. This view cannot complete that work.' : need.request ? 'Attorney acceptance is pending. Case manager Alex Rivera remains responsible for follow-up.' : 'Record a response within the case manager’s responsibility.';
+    const commitmentNote = C.hasOutstandingCommitment(state, need) ? ' Changing this commitment requires verification and correction of the source record, outside this prototype.' : '';
+    return '<footer class="action-footer"><p class="action-caption">' + esc(caption + commitmentNote) + '</p><div class="action-buttons">' + buttons + '</div></footer>';
+  }
+  function detailMarkup() {
+    const need = state.needs.find(n => n.id === selectedId);
+    if (!need) return '<aside class="detail-panel empty-state"><h2>Select an attention need</h2><p>Its evidence, responsibility, and available responses will appear here.</p></aside>';
+    const caseRecord = state.cases[need.caseId];
+    const step = caseRecord.steps[need.stepKey];
+    const p = C.priority(need, state.now);
+    const attention = C.needsAttention(need, state.now);
+    const related = state.needs.filter(n => n.caseId === need.caseId && n.id !== need.id);
+    let ownerName = need.actionOwner ? need.actionOwner.name : (need.waitingOn || 'No accepted owner');
+    let ownerNote = need.actionOwner ? need.actionOwner.role : (need.waitingOn ? 'External dependency' : 'Responsibility is not yet accepted');
+    if (need.request) { ownerName = 'Acceptance pending'; ownerNote = 'Requested from ' + personLabel(need.request.to); }
+    const outcome = C.isClosed(need) ? '<div class="closed-note ' + (need.disposition === 'corrected' ? 'corrected' : '') + '"><strong>' + esc(C.DISPOSITIONS[need.disposition]) + '.</strong> ' + esc(need.disposition === 'corrected' ? need.correctionReason : (need.type === 'receipt' ? 'Receipt was verified. The existing paralegal review remains unfinished.' : 'The fictional callback outcome was recorded. Other case work is unchanged.')) + '</div>' : '';
+    const stepOwner = step.owner === 'Jamie Torres' ? 'Paralegal Jamie Torres' : step.owner === C.CURRENT_USER.name ? 'Case manager ' + step.owner : step.owner === 'External provider' ? 'External provider' : step.owner;
+    const nextStep = '<div class="next-step ' + (step.status === 'Ready to proceed' ? 'ready' : '') + '"><span class="minor-label">Linked next step</span><span class="step-title">' + esc(step.title) + '</span><span class="step-meta">' + esc(step.status) + ' · ' + (stepOwner ? esc(stepOwner) : 'No accepted owner') + '</span>' + (!step.complete ? '<span class="step-meta">Completion is not recorded.</span>' : '') + '</div>';
+    return '<aside class="detail-panel" aria-label="Evidence and response"><div class="detail-head"><button class="mobile-back" data-back="true">' + icon('back') + 'Back to ' + (view === 'operations' ? 'Operations' : 'work list') + '</button><div class="detail-eyebrow"><span>' + esc(clientLabel(caseRecord.client)) + ' · ' + esc(need.caseId) + '</span><span>' + (caseRecord.value !== null ? 'Illustrative estimate ' + esc(money(caseRecord.value)) : '') + '</span></div>' +
+      '<h2 class="detail-title" id="detail-title" tabindex="-1">' + esc(need.title) + '</h2><div class="detail-tags">' + statusBadge(need) + '<span class="attention-badge ' + (attention ? 'on' : '') + '">' + icon(attention ? 'clock' : 'info') + (attention ? 'Needs attention now' : (C.isClosed(need) ? 'Retained in All tracked' : 'Tracked; no immediate intervention')) + '</span></div></div>' +
+      '<div class="panel-content">' + outcome + '<div class="reason-box ' + p.tone + '"><h3>' + (C.isClosed(need) ? 'At recognition: ' : '') + esc(p.label) + '</h3><p>' + esc(need.significance) + '</p><p><strong>Attention now:</strong> ' + esc(C.attentionReason(need, state.now)) + '</p><details class="why-details"><summary>Explain the suggested priority</summary><p>' + esc(p.reason) + '</p><p>Provisional demonstration guidance. Financial value does not override confirmed time-sensitive work.</p></details></div>' +
+      '<div class="section-heading">' + icon('file') + '<h3>Recorded evidence</h3><span class="side-label">Inspect before acting</span></div>' + evidenceMarkup(need) +
+      '<div class="section-heading">' + icon('people') + '<h3>Responsibility and follow-through</h3></div><dl class="responsibility-grid"><div><dt>Case coordination</dt><dd>' + esc(personLabel(caseRecord.coordinator)) + '<span>Coordinates this case</span></dd></div><div><dt>Next action responsibility</dt><dd>' + esc(need.actionOwner ? personLabel(need.actionOwner) : ownerName) + '<span>' + esc(need.actionOwner ? 'Assigned action owner' : ownerNote) + '</span></dd></div><div><dt>Follow-up responsibility</dt><dd>' + esc(need.followUpOwner ? 'Case manager ' + need.followUpOwner : 'Not recorded') + '</dd></div><div><dt>' + (need.commitmentAt ? 'Recorded commitment' : 'Next review point') + '</dt><dd>' + esc(formatDate(need.commitmentAt || need.reviewAt)) + (need.commitmentAt && need.reviewAt ? '<span>Follow-up: ' + esc(formatDate(need.reviewAt)) + '</span>' : '') + '</dd></div></dl>' +
+      (need.waitingReason ? '<p class="assumption"><strong>Waiting / follow-up reason:</strong> ' + esc(need.waitingReason) + '</p>' : '') + nextStep +
+      (need.type === 'receipt' ? '<p class="assumption">Demo assumption: the case manager may verify receipt. Legal and substantive review stays with the assigned professional.</p>' : '') +
+      (related.length ? '<div class="section-heading">' + icon('link') + '<h3>Other needs on this case</h3></div><div class="case-links">' + related.map(n => '<button class="case-link" data-select="' + n.id + '"><span>' + esc(n.title) + '</span>' + statusBadge(n) + '</button>').join('') + '</div>' : '') +
+      activityMarkup(need) + '</div>' + actionFooter(need) + '</aside>';
+  }
+  function render(focusId = null) {
+    const focusKey = document.activeElement?.getAttribute('data-focus-key');
+    const totals = C.summary(state);
+    const isOperations = view === 'operations';
+    const navigation = ['work', 'operations'].map(name => '<button class="nav-button" data-view="' + name + '" data-focus-key="nav-' + name + '"' + (view === name ? ' aria-current="page"' : '') + '>' + icon(name === 'work' ? 'list' : 'grid') + (name === 'work' ? 'Work' : 'Operations') + '</button>').join('');
+    document.body.dataset.mobileDetail = String(mobileDetail);
+    app.innerHTML = '<a class="skip-link" href="#workspace-heading">Skip to work</a><header class="topbar"><div class="topbar-inner"><div class="brand"><span class="brand-mark">' + icon('brand') + '</span>Work Triage</div><nav class="view-nav" aria-label="Application views">' + navigation + '</nav><div class="topbar-end"><div class="persona"><span class="avatar">AR</span><span>Alex Rivera<small>' + (isOperations ? 'Operations perspective · read only' : 'Case manager · fictional user') + '</small></span></div><button class="top-reset" data-reset="true" data-focus-key="reset" aria-label="Reset demo">' + icon('reset') + 'Reset demo</button></div></div></header>' +
+      '<div class="simulation"><div class="simulation-inner"><span><span class="simulation-dot"></span><strong>Fictional simulation</strong> · Fixed reference: Oct 14, 2026, 9:00 a.m. Eastern</span><span class="simulation-secondary">Actions are recorded locally. No calls or messages are sent.</span></div></div>' +
+      '<main class="page"><div class="page-heading"><div><h1 id="workspace-heading" tabindex="-1">' + (isOperations ? 'Work follow-through' : 'Assigned caseload') + '</h1><p>' + totals.cases + ' fictional cases · ' + totals.total + ' tracked needs · ' + (isOperations ? totals.open + ' open' : totals.attention + ' need attention now') + '</p><p class="team-key">Demo roles: <strong>Case manager</strong> Alex Rivera · <strong>Attorney</strong> Taylor Bennett · <strong>Paralegal</strong> Jamie Torres</p></div><button class="guidance-button" data-guidance="true" data-focus-key="guidance" aria-label="How priority guidance works">' + icon('info') + 'How priority guidance works</button></div><div class="workspace">' + (isOperations ? operationsMarkup() : queueMarkup()) + detailMarkup() + '</div></main>';
+    requestAnimationFrame(() => {
+      if (focusId) document.getElementById(focusId)?.focus({ preventScroll: true });
+      else if (focusKey) document.querySelector('[data-focus-key="' + focusKey + '"]')?.focus({ preventScroll: true });
+    });
+  }
+  function announce(message) {
+    clearTimeout(toastTimer);
+    liveStatus.textContent = message;
+    toastTimer = setTimeout(() => { liveStatus.textContent = ''; }, 8500);
+  }
+  function dialogHead(title, subtitle = '') {
+    return '<div class="dialog-head"><div><h2 id="dialog-title">' + esc(title) + '</h2>' + (subtitle ? '<p>' + esc(subtitle) + '</p>' : '') + '</div><button type="button" class="icon-button" data-close="true" aria-label="Close dialog">' + icon('close') + '</button></div>';
+  }
+  function showDialog(markup) {
+    dialog.innerHTML = markup;
+    dialog.showModal();
+  }
+  function noteField(label, initial = '', optional = false) {
+    return '<div class="form-field"><label for="action-note">' + esc(label) + (optional ? ' (optional)' : '') + '</label><textarea id="action-note" name="note" maxlength="2000"' + (optional ? '' : ' required') + '>' + esc(initial) + '</textarea></div>';
+  }
+  function followupField(need) {
+    const value = need.reviewAt && need.reviewAt > state.now ? need.reviewAt : '2026-10-15T10:00';
+    return '<div class="form-field"><label for="review-at">Next follow-up point</label><input type="datetime-local" id="review-at" name="reviewAt" value="' + esc(value) + '" min="2026-10-14T09:01" required aria-describedby="review-help"><small id="review-help">Eastern demo time. Follow-up responsibility stays with case manager Alex Rivera.</small></div>';
+  }
+  function checkField(name, label) {
+    return '<label class="check-label"><input type="checkbox" name="' + name + '" required><span>' + esc(label) + '</span></label>';
+  }
+  function openAction(needId, action) {
+    const need = state.needs.find(n => n.id === needId);
+    if (!need || view === 'operations' || !C.availableActions(state, need).includes(action)) return;
+    activeAction = { needId, action };
+    const caseRecord = state.cases[need.caseId];
+    let intro = '', fields = '';
+    if (action === 'confirm_receipt') {
+      intro = 'Confirm only that the expected document was received and recorded. The assigned paralegal still performs the substantive review.';
+      fields = '<div class="record-preview"><strong>Expected: ' + esc(caseRecord.receipt.expectedReference) + '</strong><span>Received: ' + esc(caseRecord.receipt.receivedReference) + '</span><div class="subtle">Received ' + esc(formatDate(caseRecord.receipt.uploadedAt)) + ' · ' + esc(clientLabel(caseRecord.client)) + '</div></div>' + checkField('receiptVerified', 'I checked the case and document reference. This confirms receipt, not legal or substantive sufficiency.') + noteField('Receipt note', '', true);
+    } else if (action === 'request_review') {
+      intro = 'Record a request to the existing case attorney. This does not assign a different attorney, confirm acceptance, or complete the review.';
+      fields = '<div class="record-preview"><strong>Requested from: ' + esc(personLabel(caseRecord.attorney)) + '</strong><span class="subtle">Existing case attorney · Acceptance remains pending</span></div>' + noteField('Request context', 'The assembled materials are ready. Please review and record the appropriate next step.') + followupField(need);
+    } else if (action === 'record_callback') {
+      intro = 'Record the outcome of a fictional callback that has already occurred. This prototype does not place calls.';
+      fields = noteField('Callback outcome') + checkField('completed', 'The callback was completed in this fictional scenario.');
+    } else if (action === 'record_provider_followup') {
+      intro = 'Record supplying the reference in this fictional scenario. The request will remain waiting until the provider confirms that processing can proceed.';
+      fields = '<div class="record-preview"><strong>Recorded reference: ' + esc(caseRecord.reference) + '</strong><span class="subtle">No external message is sent.</span></div>' + checkField('referenceSupplied', 'The reference was supplied in this fictional scenario.') + noteField('Follow-up outcome') + followupField(need);
+    } else if (action === 'correct_signal') {
+      intro = 'Explain why this attention signal is inaccurate. The correction stays in activity and is counted separately from completed work. Underlying tasks and professional decisions are unchanged.';
+      fields = noteField('Correction reason');
+    } else {
+      intro = need.disposition === 'requested' ? 'Update the review request’s follow-up plan. The request remains Requested, with attorney acceptance still pending.' : 'Record why this need can wait and when you will review it. It remains open and available in All tracked.';
+      fields = (need.commitmentAt ? '<div class="form-warning">The commitment at ' + esc(formatDate(need.commitmentAt)) + ' remains in force. This need will stay in Needs attention while it is unfulfilled.</div>' : '') + noteField('Waiting or follow-up reason', need.waitingReason || '') + followupField(need);
+    }
+    showDialog('<form id="action-form">' + dialogHead(actionLabels[action], clientLabel(caseRecord.client) + ' · ' + need.caseId) + '<div class="dialog-body"><p class="dialog-intro">' + esc(intro) + '</p><div id="form-error" class="form-error" role="alert"></div>' + fields + '</div><div class="dialog-footer"><button type="button" class="button" data-close="true">Cancel</button><button type="submit" class="button primary">' + esc(actionLabels[action]) + '</button></div></form>');
+  }
+  function openGuidance() {
+    activeAction = null;
+    showDialog(dialogHead('How priority guidance works', 'Provisional rules for this fictional demonstration') + '<div class="dialog-body guidance-copy"><p>The suggested order helps compare work. You can inspect any item, and the underlying records remain available.</p><ol><li><strong>Time-sensitive commitments and follow-up points that have arrived come first.</strong> The recorded time determines their order. A future follow-up does not erase an unfulfilled commitment.</li><li><strong>Conditions blocking an identified next step follow.</strong> Conflicting evidence is labeled for verification. Within a group, the earlier recorded review point or signal comes first.</li><li><strong>Other operational work remains visible.</strong> Waiting, requested, and accepted work appears in All tracked. It returns to attention when its review point arrives.</li></ol><p><strong>Importance, attention now, and disposition are separate.</strong> Requesting an attorney review does not reduce its consequence or imply acceptance.</p><p>Case estimates are fictional context. There is no financial weighting or numerical priority score.</p><p>All timestamps use the fixed Eastern demo clock. These rules are assumptions for exploration, not an organization’s operating policy or legal guidance.</p></div><div class="dialog-footer"><button class="button primary" data-close="true">Got it</button></div>');
+  }
+  function openReset() {
+    activeAction = { action: 'reset' };
+    showDialog('<form id="action-form">' + dialogHead('Reset the fictional demo?') + '<div class="dialog-body"><p class="dialog-intro">Restore the original six cases and seven attention needs. Changes and activity recorded during this session will be cleared.</p></div><div class="dialog-footer"><button type="button" class="button" data-close="true">Keep current state</button><button class="button primary" type="submit">Reset demo</button></div></form>');
+  }
+  app.addEventListener('click', event => {
+    const target = event.target.closest('button');
+    if (!target) return;
+    if (target.dataset.select) {
+      selectedId = target.dataset.select; mobileDetail = true;
+      render(window.matchMedia('(max-width: 820px)').matches ? 'detail-title' : null);
+    } else if (target.dataset.filter) {
+      filter = target.dataset.filter;
+      const rows = C.sortedNeeds(state, filter);
+      if (!rows.some(n => n.id === selectedId)) selectedId = rows[0]?.id || null;
+      mobileDetail = false; render();
+    } else if (target.dataset.view) {
+      view = target.dataset.view; mobileDetail = false; render();
+    } else if (target.dataset.action) openAction(target.dataset.need, target.dataset.action);
+    else if (target.dataset.guidance) openGuidance();
+    else if (target.dataset.reset) openReset();
+    else if (target.dataset.back) {
+      mobileDetail = false; render();
+      requestAnimationFrame(() => document.querySelector('[data-focus-key="need-' + selectedId + '"]')?.focus({ preventScroll: true }));
+    }
+  });
+  dialog.addEventListener('click', event => { if (event.target.closest('[data-close]')) dialog.close(); });
+  dialog.addEventListener('close', () => { activeAction = null; });
+  dialog.addEventListener('submit', event => {
+    event.preventDefault();
+    if (!activeAction) return;
+    if (activeAction.action === 'reset') {
+      state = C.createInitialState(); filter = 'attention'; view = 'work'; selectedId = 'callback'; mobileDetail = false;
+      dialog.close(); render('workspace-heading'); announce('Demo reset. All seven original attention needs are restored.'); return;
+    }
+    const values = new FormData(event.target);
+    const fields = { note: values.get('note') || '', reviewAt: values.get('reviewAt') || '',
+      receiptVerified: values.has('receiptVerified'), completed: values.has('completed'), referenceSupplied: values.has('referenceSupplied') };
+    try {
+      const result = C.applyAction(state, activeAction.needId, activeAction.action, fields);
+      state = result.state;
+      dialog.close(); render('detail-title'); announce(result.message);
+    } catch (error) {
+      const errorElement = document.getElementById('form-error');
+      errorElement.textContent = error.message;
+      errorElement.setAttribute('tabindex', '-1'); errorElement.focus();
+    }
+  });
+  render();
+})();
+</script>
+</body>
+</html>
