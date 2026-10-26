@@ -3,9 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="A fictional work-triage prototype for legal operations.">
+  <meta name="description" content="Interactive product prototype using fictional legal work to explore prioritization, ownership and follow-through before engineering investment.">
   <meta name="color-scheme" content="light">
-  <title>Work Triage | Legal operations prototype</title>
+  <title>Work Triage Prototype | Interactive Product Concept</title>
   <style id="app-styles">
     :root {
       --ink: #1d3041; --muted: #526476; --faint: #738294; --navy: #152c40;
@@ -233,9 +233,20 @@
     @media (max-width: 410px) { .brand { gap: 7px; font-size: 15px; } .topbar-inner { gap: 13px; } .view-nav { gap: 10px; font-size: 12px; } .nav-button svg { display: none; } .responsibility-grid { grid-template-columns: 1fr; gap: 13px; } .row-top { flex-wrap: wrap; gap: 3px; } .dialog-body, .dialog-head, .dialog-footer { padding-left: 18px; padding-right: 18px; } }
     @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; } }
     @media print { .topbar, .simulation, .queue, .operations-panel, .action-footer, .guidance-button, .mobile-back, #live-status { display: none !important; } .workspace { display: block; } .detail-panel { display: block !important; max-height: none; overflow: visible; border: 0; } .page { padding: 0; } }
+  
+    /* Portfolio context: deliberately separate from the interactive application. */
+    .portfolio-demo-note { background: #eaf3f3; color: #173e47; border-bottom: 1px solid #c2d9da; font-family: "Segoe UI",system-ui,sans-serif; }
+    .portfolio-demo-note__inner { max-width: 1540px; margin:auto; display:flex; align-items:center; justify-content:space-between; gap:16px; padding:12px 32px; }
+    .portfolio-demo-note__copy { display:flex; gap:8px; flex-direction:column; font-size:13px; line-height:1.4; }
+    .portfolio-demo-note__copy strong { font-weight:700; font-size:14px; }
+    .portfolio-demo-note__link { color:#115657; border: 1px solid #9cbfc1; border-radius:7px; background:#fff; padding:9px 13px; font-size:13px; font-weight:700; text-decoration:none; flex-shrink:0; }
+    .portfolio-demo-note__link:hover { background:#f3f9f9; text-decoration:underline; }
+    .portfolio-demo-note__link:focus-visible { outline:3px solid #238aab; outline-offset:3px; }
+    @media (max-width:640px) { .portfolio-demo-note__inner { padding:13px 18px; align-items:flex-start; flex-direction:column; gap:10px; } }
   </style>
 </head>
 <body>
+  <div class="portfolio-demo-note" role="note"><div class="portfolio-demo-note__inner"><div class="portfolio-demo-note__copy"><strong>Interactive product concept · fictional legal operations</strong><span>Explore how case managers identify, prioritize and track work. All data is fictional; actions stay in this demo and reset when you refresh.</span></div><a class="portfolio-demo-note__link" href="https://tanyademauriac-pm.github.io/ai-product-portfolio/work-triage-prototype/">Read the product case study ↗</a></div></div>
   <div id="app"><main><h1>Work Triage</h1><p>Fictional legal operations prototype.</p></main></div>
   <div id="live-status" role="status" aria-live="polite" aria-atomic="true"></div>
   <dialog id="action-dialog" aria-labelledby="dialog-title"></dialog>
